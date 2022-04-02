@@ -1,0 +1,179 @@
+---
+title: "A9"
+author: "Tora Mullings"
+date: "4/2/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+### Introduction
+#### Task: Convert JSON data returned from a NYTimes API to a data frame.
+
+I chose the Books API and I have signed up for my API key. Click [here](https://developer.nytimes.com/docs/books-product/1/overview) to see the different paths to request information from.
+
+### Load libraries
+For this task, `httr` is for making requests to the Books API. The `jsonlite` library will help to convert the responses to data frames. The `dplyr` will be used for basic data viewing (`glimpse()`) as well as other functions.
+```{r}
+library(httr)
+library(jsonlite)
+library(dplyr)
+```
+
+### Make requests.
+#### Get Best Sellers list names.
+GET /lists/names.json
+```{r}
+url <- "https://api.nytimes.com/svc/books/v3/lists/names.json?api-key=AvbYLVUMBocuH57SRfsCtMkgBp0iP1Kd"
+r <- GET(url)
+best_sellers.list_names <- fromJSON(content(r, as="text"))
+x <- best_sellers.list_names$results 
+head(x, n=1L)
+```
+For the sake of comprehension, read the column names to help understand the type of information that was returned.
+```{r}
+colnames(x)
+```
+
+
+
+#### Get Best Sellers list by date.
+GET /lists/{date}/{list}.json
+
+The list name comes from the `list_name_encoded` column in the /lists/names.json data frame (the one just above this). Here we choose the one named `animals`.
+```{r}
+list_name <- "animals"
+my_date <- "current"
+url <- paste0("https://api.nytimes.com/svc/books/v3/lists/",my_date,"/",list_name,".json?api-key=AvbYLVUMBocuH57SRfsCtMkgBp0iP1Kd")
+r <- GET(url)
+x <- fromJSON(content(r, as="text"))$results$books
+head(x, n=1L)
+```
+
+See column names:
+```{r}
+colnames(x)
+```
+
+#### Get Best Sellers list history.
+GET /lists/best-sellers/history.json
+```{r}
+url <- "https://api.nytimes.com/svc/books/v3/lists/best-sellers/history.json?api-key=AvbYLVUMBocuH57SRfsCtMkgBp0iP1Kd"
+r <- GET(url)
+x <- fromJSON(content(r, as="text"))
+x <- x$results
+head(x, n=1L)
+```
+
+See column names:
+```{r}
+colnames(x)
+```
+
+
+#### Get all books for all the Best Sellers lists for specified date.
+GET /lists/full-overview.json
+```{r}
+my_date <- "2021-04-06"
+url <- paste0("https://api.nytimes.com/svc/books/v3/lists/full-overview/",my_date, ".json?api-key=AvbYLVUMBocuH57SRfsCtMkgBp0iP1Kd")
+r <- GET(url)
+x <- fromJSON(content(r, as="text"))
+x <- x$results$lists
+book.list <- x$books
+print(paste0("Number of Best Sellers lists on ", my_date, ": ", length(book.list)))
+head(x, n=1L)
+```
+
+See column names:
+```{r}
+colnames(x)
+```
+
+
+#### Get top 5 books for all the Best Sellers lists for specified date.
+GET /lists/overview.json
+```{r}
+my_date <- "2021-04-06"
+url <- paste0("https://api.nytimes.com/svc/books/v3/lists/overview/", my_date,".json?api-key=AvbYLVUMBocuH57SRfsCtMkgBp0iP1Kd")
+r <- GET(url)
+x <- fromJSON(content(r, as="text"))
+x <- x$results$lists
+print(paste0(nrow(x), " rows and ", ncol(x), " columns of meta data. The books are in the last column."))
+head(x, n=1L)
+```
+
+The above output is the resulting data frame, but let's have a look at the books in the first Best Seller list.
+```{r}
+book1 <- x$books[1][1]
+glimpse(book1)
+```
+
+See column names of the data frame:
+```{r}
+colnames(x)
+```
+
+
+#### Get Best Sellers list. If no date is provided, returns the latest list.
+GET /lists.json
+```{r}
+list_name <- "animals"
+url <- paste0("https://api.nytimes.com/svc/books/v3/lists/",list_name,".json?api-key=AvbYLVUMBocuH57SRfsCtMkgBp0iP1Kd")
+r <- GET(url)
+x <- fromJSON(content(r, as="text"))
+x <- x$results
+```
+The data frame is in the variable `x`, a list, but the book information is in `x$books`, which is a data frame.
+```{r}
+head(x$books, n=1L)
+```
+
+
+See column names for `x$books`:
+```{r}
+colnames(x$books)
+```
+
+
+#### Get book reviews.
+GET /reviews.json
+```{r}
+author <- "Stephen+King"
+url <- paste0("https://api.nytimes.com/svc/books/v3/reviews.json?author=", author,"&api-key=AvbYLVUMBocuH57SRfsCtMkgBp0iP1Kd")
+r <- GET(url)
+x <- fromJSON(content(r, as="text"))
+x <- x$results
+
+```
+
+See column names:
+```{r}
+colnames(x)
+```
+
+
+We fetched reviews of Stephen King's books. View the first 2 that were returned.
+```{r}
+head(x, n=2L)
+```
+
+See column names. This way, you can see that the url of the review is located in the first column:
+```{r}
+colnames(x)
+```
+
+
+### Conclusion
+By specifying parameters and your API key, you can easily request information from the NYTimes Books API. We need to first build our request string, which may or may not include different query parameters, like an author or title. Then use the `httr` package to make the request, passing along your string. Use `content` function and pass the argument `as="text"` to get the response from the API. In our case, the payload was usually in the `results` column of the response, and this was what we converted into a data frame that can be utilized later. However, there is so much data it can be difficult to parse with human eyes, so it's a good idea to print the column names or the first few rows to get a better understanding.
+
+
+
+
+
+
+
+
+
+
+
+
